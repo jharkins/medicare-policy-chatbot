@@ -31,10 +31,10 @@ _Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs.
 
 ```mermaid
 flowchart LR
-    A[Source PDFs in ./docs/] -->|01 Extract| B["Docling JSON + page PNGs\n(+ bbox provenance)"]
-    B -->|02 Transform/Load| C["Qdrant local file\n(:memory: for dev)"]
-    C -->|/api/search| D["Top-K chunks\npayload = {doc_name,page_no,bbox}"]
-    D -->|/api/visual_grounding| E["Bounding boxes drawn\non cached PNG"]
+    A[Source PDFs in ./docs/] -->|01 Extract| B["Docling JSON + page PNGs (+ bbox provenance)"]
+    B -->|02 Transform/Load| C["Qdrant local file (:memory: for dev)"]
+    C -->|/api/search| D["Top-K chunks payload = {doc_name,page_no,bbox}"]
+    D -->|/api/visual_grounding| E["Bounding boxes drawn on cached PNG"]
 ```
 
 - **Docling settings**
@@ -98,7 +98,52 @@ export COLLECTION=medicare_policy_docs
 export QDRANT_API_KEY="" # (if your Qdrant instance requires an API key)
 ```
 
-These can be set in your shell or by creating a `.env` file in the project root (see `.env.sample`).
+These can be set in your shell or by creating a `.env` file in the project root (see `env.sample`).
+
+### 4 · Running with Docker
+
+This assumes you have already run the ETL notebooks (see step 2) to populate your Qdrant instance and generate the `extracted_docs/` directory.
+
+1.  **Build the Docker Image:**
+
+    ```bash
+    docker build -t medicare-policy-chatbot .
+    ```
+
+2.  **Prepare your `.env` file:**
+    Create a file named `.env` in the project root with the following content, adjusting values for your Qdrant setup:
+
+    ```env
+    # Required: Point this to your running Qdrant instance
+    QDRANT_URL=http://localhost:6333
+
+    # Required if your Qdrant instance uses an API key
+    QDRANT_API_KEY=
+
+    # Optional: These are defaulted in the Dockerfile but can be overridden if needed
+    # EMBED_MODEL_ID=sentence-transformers/all-MiniLM-L6-v2
+    # SPARSE_MODEL_ID=Qdrant/bm25
+    # COLLECTION=medicare_policy_docs
+    ```
+
+3.  **Run the Docker Container:**
+    Replace `/path/to/your/medicare-policy-chatbot/extracted_docs` with the absolute path to the `extracted_docs` directory on your host machine.
+
+    ```bash
+    docker run -d -p 8000:8000 \
+      --env-file ./.env \
+      -v /path/to/your/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
+      --name medicare-chatbot-service \
+      medicare-policy-chatbot
+
+      docker run -d -p 8000:8000 \
+      --env-file ./.env \
+      -v /home/joe/src/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
+      --name medicare-chatbot-service \
+      medicare-policy-chatbot
+    ```
+
+    The service will then be available at `http://localhost:8000`, and you can access the Swagger UI at `http://localhost:8000/docs`.
 
 ---
 

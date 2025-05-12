@@ -9,6 +9,9 @@ class HybridSearcher:
         self.qdrant_client = QdrantClient(
             url=self.settings.qdrant_url, api_key=self.settings.qdrant_api_key
         )
+        # print(
+        #     f"DEBUG: embed_model_id='{self.settings.embed_model_id}' TYPE: {type(self.settings.embed_model_id)}"
+        # )  # DEBUG
         self.qdrant_client.set_model(self.settings.embed_model_id)  # dense
         self.qdrant_client.set_sparse_model(self.settings.sparse_model_id)  # sparse
 
