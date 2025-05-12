@@ -4,9 +4,9 @@ A FastAPI‑based **neural search** and **visual‑grounding** service for Medic
 _Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs.
 
 <table>
-<tr><td>🗂️ Extraction</td><td><b>Docling</b> + SmolDocling‑256M on GPU</td></tr>
-<tr><td>🔍 Search</td><td><b>Qdrant</b> hybrid (dense BGE‑small‑en + BM25)</td></tr>
-<tr><td>🎯 Grounding</td><td>Bounding‑box payload returned with every hit</td></tr>
+<tr><td>🗂️ Extraction</td><td><b>Docling</b> + SmolDocling‑256M on GPU</td></tr>
+<tr><td>🔍 Search</td><td><b>Qdrant</b> hybrid (dense BGE‑small‑en + BM25)</td></tr>
+<tr><td>🎯 Grounding</td><td>Bounding‑box payload returned with every hit</td></tr>
 </table>
 
 ---
@@ -31,10 +31,10 @@ _Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs.
 
 ```mermaid
 flowchart LR
-    A[Source PDFs in ./docs/] -->|01 Extract| B[Docling JSON + page PNGs<br/>(+ bbox provenance)]
-    B -->|02 Transform/Load| C[Qdrant local file (:memory: for dev)]
-    C -->|/api/search| D[Top‑K chunks<br/>payload = {doc_name,page_no,bbox}]
-    D -->|/api/visual_grounding| E[Bounding boxes drawn<br/>on cached PNG]
+    A[Source PDFs in ./docs/] -->|01 Extract| B["Docling JSON + page PNGs\n(+ bbox provenance)"]
+    B -->|02 Transform/Load| C["Qdrant local file\n(:memory: for dev)"]
+    C -->|/api/search| D["Top-K chunks\npayload = {doc_name,page_no,bbox}"]
+    D -->|/api/visual_grounding| E["Bounding boxes drawn\non cached PNG"]
 ```
 
 - **Docling settings**
