@@ -1,0 +1,116 @@
+[
+    {
+        "plan_id": "H2001-128",
+        "plan_name": "AARP Medicare Advantage from UHC UT-0008 (PPO)",
+        "organization_name": "AARP Medicare Advantage from UHC",
+        "parent_organization": "UnitedHealthcare",
+        "plan_type": "PPO",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "UHC 1 SOB.json",
+                "binary_hash": "8559293971566961273"
+            },
+            {
+                "type": "EOC",
+                "filename": "UHC 1 EOC.json",
+                "binary_hash": "10318446977090166927"
+            }
+        ]
+    },
+    {
+        "plan_id": "H4604-011",
+        "plan_name": "AARP Medicare Advantage Essentials from UHC UT-4 (HMO-POS)",
+        "organization_name": "AARP Medicare Advantage from UHC",
+        "parent_organization": "UnitedHealthcare",
+        "plan_type": "HMO-POS",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "UHC 2 SOB.json",
+                "binary_hash": "17273066441900443758"
+            },
+            {
+                "type": "EOC",
+                "filename": "UHC 2 EOC.json",
+                "binary_hash": "5721098189658152198"
+            }
+        ]
+    },
+    {
+        "plan_id": "H5521-246",
+        "plan_name": "Aetna Medicare Elite (PPO)",
+        "organization_name": "Aetna Medicare",
+        "parent_organization": "Aetna, Inc.",
+        "plan_type": "PPO",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "Aetna SOB.json",
+                "binary_hash": "16373092735791678805"
+            },
+            {
+                "type": "EOC",
+                "filename": "Aetna EOC.json",
+                "binary_hash": "352052772842088726"
+            }
+        ]
+    },
+    {
+        "plan_id": "H7389-001",
+        "plan_name": "Cigna Preferred Medicare (HMO)",
+        "organization_name": "Cigna Medicare",
+        "parent_organization": "Cigna",
+        "plan_type": "HMO",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "Cigna SOB.json",
+                "binary_hash": "7881834523706599695"
+            },
+            {
+                "type": "EOC",
+                "filename": "Cigna EOC.json",
+                "binary_hash": "4147500605932598920"
+            }
+        ]
+    },
+    {
+        "plan_id": "H5216-048",
+        "plan_name": "HumanaChoice H5216-048 (PPO)",
+        "organization_name": "HumanaChoice",
+        "parent_organization": "Humana",
+        "plan_type": "PPO",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "Humana SOB.json",
+                "binary_hash": "16067313294276065655"
+            },
+            {
+                "type": "EOC",
+                "filename": "Humana EOC.json",
+                "binary_hash": "6283461173906196694"
+            }
+        ]
+    },
+    {
+        "plan_id": "H4605-002",
+        "plan_name": "Regence MedAdvantage + Rx Classic (PPO)",
+        "organization_name": "Regence Medicare Advantage",
+        "parent_organization": "Regence",
+        "plan_type": "PPO",
+        "documents": [
+            {
+                "type": "SOB",
+                "filename": "Regence SOB.json",
+                "binary_hash": "16067313294276065655"
+            },
+            {
+                "type": "EOC",
+                "filename": "Regence EOC.json",
+                "binary_hash": "10351396324170293029"
+            }
+        ]
+    }
+]
