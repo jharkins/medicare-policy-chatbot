@@ -12,3 +12,4 @@ qdrant-client==1.14.2
 semchunk==2.2.2
 tomli==2.0.1
 uvicorn==0.34.2
+streamlit

@@ -121,7 +121,7 @@ def visual_grounding(
 
         results.append(
             {
-                "text": dl.get("document", ""),
+                "text": dl.get("text", dl.get("document", "")),  # Support both new 'text' field and legacy 'document' field
                 "binary_hash": bh,
                 "plan_id": pid,
                 "plan_name": plan_meta.get("plan_name", ""),

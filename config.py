@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     embed_model_id: str
     sparse_model_id: str
     collection: str
+    openai_api_key: str = ""  # Optional, only needed for embedding.py
 
     class Config:
         env_file = ".env"

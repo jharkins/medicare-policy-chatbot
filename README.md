@@ -1,12 +1,13 @@
 # Medicare Policy Chatbot 📄🧠
 
 A FastAPI‑based **neural search** and **visual‑grounding** service for Medicare
-_Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs.
+_Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs with a **Streamlit chat interface**.
 
 <table>
 <tr><td>🗂️ Extraction</td><td><b>Docling</b> + SmolDocling‑256M on GPU</td></tr>
 <tr><td>🔍 Search</td><td><b>Qdrant</b> hybrid (dense BGE‑small‑en + BM25)</td></tr>
 <tr><td>🎯 Grounding</td><td>Bounding‑box payload returned with every hit</td></tr>
+<tr><td>💬 Interface</td><td><b>Streamlit</b> chat UI with plan filtering & visual annotations</td></tr>
 </table>
 
 ---
@@ -18,7 +19,9 @@ _Summary of Benefits_ (SOB) and _Evidence of Coverage_ (EOC) PDFs.
 | `notebooks/01_extract_medicare_policy_docs.ipynb`            | **GPU** notebook — converts PDFs → Docling JSON + per‑page PNGs (6 min for 206 pages) |
 | `notebooks/02_transform_and_load_medicare_policy_docs.ipynb` | **CPU or T4 GPU** — chunks, embeds, and bulk‑loads to local Qdrant, keeping bboxes    |
 | `service.py`                                                 | FastAPI server with `/api/search`, `/api/visual_grounding`, `/api/annotate_result`    |
-| `hybrid_search.py`                                           | Thin wrapper around Qdrant `client.query()`                                           |
+| `streamlit_chat.py`                                          | **Streamlit chat interface** for user-friendly document search                        |
+| `hybrid_search.py`                                           | OpenAI embeddings + Qdrant vector search wrapper                                      |
+| `embedding.py`                                               | **Alternative** OpenAI embedding script with table extraction fallbacks               |
 | `plan_service.py`                                            | Maps plan IDs → SOB / EOC binary hashes                                               |
 | `plans.json`                                                 | Declarative list of plans and their document hashes                                   |
 | `extracted_docs/`                                            | One `<doc>.json` + `/<doc>/<page>.png` folder per PDF                                 |
@@ -44,11 +47,11 @@ flowchart LR
 - **Chunker**
   `HybridChunker` (\~200 tokens) keeps layout coherence.
 
-- **Dense model (FastEmbed)**
-  `BAAI/bge-small-en-v1.5` (384‑d) on CUDAExecutionProvider.
+- **Dense model (OpenAI)**
+  `text-embedding-3-small` (1536‑d) via OpenAI API.
 
-- **Sparse model**
-  `Qdrant/bm25` fused with dense results via built‑in RRF.
+- **Table extraction**
+  Documents with 0 text items (table‑heavy) use table markdown export or document markdown as fallback.
 
 - **Bounding boxes**
   Normalised `[l,t,r,b]` (0‑1) stored in payload → drawn in `/api/annotate_result`.
@@ -88,19 +91,28 @@ uvicorn service:app --reload
 
 Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-Environment variables (defaults work for `:memory:` Qdrant):
+### 4 · Streamlit Chat Interface
+
+```bash
+streamlit run streamlit_chat.py
+```
+
+Chat UI: [http://localhost:8501](http://localhost:8501)
+
+Environment variables (copy from `env.sample` to `.env`):
 
 ```bash
 export QDRANT_URL=":memory:" # or "http://localhost:6333" for a persistent instance
-export EMBED_MODEL_ID="sentence-transformers/all-MiniLM-L6-v2" # (matches .env.sample; BAAI/bge-small-en-v1.5 also recommended)
-export SPARSE_MODEL_ID=Qdrant/bm25
-export COLLECTION=medicare_policy_docs
 export QDRANT_API_KEY="" # (if your Qdrant instance requires an API key)
+export EMBED_MODEL_ID="sentence-transformers/all-MiniLM-L6-v2" # (legacy, not used with OpenAI)
+export SPARSE_MODEL_ID="Qdrant/bm25" # (legacy, not used with OpenAI)
+export COLLECTION="medicare_policy_docs"
+export OPENAI_API_KEY="your-openai-api-key-here" # Required for embeddings
 ```
 
 These can be set in your shell or by creating a `.env` file in the project root (see `env.sample`).
 
-### 4 · Running with Docker
+### 5 · Running with Docker
 
 This assumes you have already run the ETL notebooks (see step 2) to populate your Qdrant instance and generate the `extracted_docs/` directory.
 
@@ -120,7 +132,10 @@ This assumes you have already run the ETL notebooks (see step 2) to populate you
     # Required if your Qdrant instance uses an API key
     QDRANT_API_KEY=
 
-    # Optional: These are defaulted in the Dockerfile but can be overridden if needed
+    # Required: OpenAI API key for embeddings
+    OPENAI_API_KEY=your-openai-api-key-here
+
+    # Optional: These are defaulted but can be overridden if needed
     # EMBED_MODEL_ID=sentence-transformers/all-MiniLM-L6-v2
     # SPARSE_MODEL_ID=Qdrant/bm25
     # COLLECTION=medicare_policy_docs
@@ -129,21 +144,37 @@ This assumes you have already run the ETL notebooks (see step 2) to populate you
 3.  **Run the Docker Container:**
     Replace `/path/to/your/medicare-policy-chatbot/extracted_docs` with the absolute path to the `extracted_docs` directory on your host machine.
 
+    **FastAPI only (default):**
     ```bash
     docker run -d -p 8000:8000 \
       --env-file ./.env \
       -v /path/to/your/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
-      --name medicare-chatbot-service \
-      medicare-policy-chatbot
-
-      docker run -d -p 8000:8000 \
-      --env-file ./.env \
-      -v /home/joe/src/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
-      --name medicare-chatbot-service \
+      --name medicare-chatbot-api \
       medicare-policy-chatbot
     ```
+    Access: `http://localhost:8000` (Swagger UI: `http://localhost:8000/docs`)
 
-    The service will then be available at `http://localhost:8000`, and you can access the Swagger UI at `http://localhost:8000/docs`.
+    **Streamlit chat interface only:**
+    ```bash
+    docker run -d -p 8501:8501 \
+      --env-file ./.env \
+      -e SERVICE=streamlit \
+      -v /path/to/your/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
+      --name medicare-chatbot-ui \
+      medicare-policy-chatbot
+    ```
+    Access: `http://localhost:8501`
+
+    **Both services:**
+    ```bash
+    docker run -d -p 8000:8000 -p 8501:8501 \
+      --env-file ./.env \
+      -e SERVICE=both \
+      -v /path/to/your/medicare-policy-chatbot/extracted_docs:/app/extracted_docs \
+      --name medicare-chatbot-full \
+      medicare-policy-chatbot
+    ```
+    Access: API at `http://localhost:8000`, Chat at `http://localhost:8501`
 
 ---
 
@@ -160,13 +191,14 @@ Bounding‑box array is always normalised; front‑end multiplies by displayed i
 
 ---
 
-## GPU vs CPU Cheat‑sheet
+## Performance Notes
 
 | Stage                | Free CPU                 | T4 GPU                  |
 | -------------------- | ------------------------ | ----------------------- |
 | Docling extraction   | ❌ (slow)                | ✅ (~6 min / 200 pages) |
-| FastEmbed embeddings | ✅ (~1 min / 3 k chunks) | ✅ (~20 s)              |
-| Qdrant query + LLM   | ✅                       | (GPU idle)              |
+| OpenAI embeddings    | ✅ (API-based)           | ✅ (API-based)          |
+| Qdrant query         | ✅                       | ✅                      |
+| Streamlit interface  | ✅                       | ✅                      |
 
 ---
 

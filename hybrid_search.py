@@ -1,6 +1,8 @@
 from qdrant_client import QdrantClient, models
 from config import get_settings
 from typing import List, Optional
+import openai
+import os
 
 
 class HybridSearcher:
@@ -9,31 +11,28 @@ class HybridSearcher:
         self.qdrant_client = QdrantClient(
             url=self.settings.qdrant_url, api_key=self.settings.qdrant_api_key
         )
-        # print(
-        #     f"DEBUG: embed_model_id='{self.settings.embed_model_id}' TYPE: {type(self.settings.embed_model_id)}"
-        # )  # DEBUG
-        self.qdrant_client.set_model(self.settings.embed_model_id)  # dense
-        self.qdrant_client.set_sparse_model(self.settings.sparse_model_id)  # sparse
+        # Initialize OpenAI client for embeddings
+        self.openai_client = openai.Client(api_key=self.settings.openai_api_key)
+        self.embed_model = "text-embedding-3-small"  # Match what was used in embedding.py
+
+    def _get_embedding(self, text: str) -> List[float]:
+        """Generate embedding using OpenAI API"""
+        response = self.openai_client.embeddings.create(
+            model=self.embed_model,
+            input=text
+        )
+        return response.data[0].embedding
 
     def search(self, text: str):
+        # Use the actual collection name from env or default
+        collection_name = os.getenv("QDRANT_COLLECTION", "docs")
+        
+        # Generate embedding for the query
+        query_vector = self._get_embedding(text)
+        
         search_result = self.qdrant_client.query_points(
-            collection_name=self.settings.collection,
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
-            prefetch=[
-                models.Prefetch(
-                    query=models.Document(
-                        text=text, model=self.settings.embed_model_id
-                    ),
-                    using="fast-all-minilm-l6-v2",
-                ),
-                models.Prefetch(
-                    query=models.Document(
-                        text=text, model=self.settings.sparse_model_id
-                    ),
-                    using="fast-sparse-bm25",
-                ),
-            ],
-            query_filter=None,
+            collection_name=collection_name,
+            query=query_vector,
             limit=5,
         ).points
 
@@ -73,37 +72,27 @@ class HybridSearcher:
         If plan_hashes is provided, only return points whose payload.origin.binary_hash
         is in that list.
         """
+        # Use the actual collection name from env or default
+        collection_name = os.getenv("QDRANT_COLLECTION", "docs")
+        
+        # Generate embedding for the query
+        query_vector = self._get_embedding(text)
+        
         # Build an optional Qdrant Filter
         qfilter = None
         if plan_hashes:
-            # Flatten the payload path to a top-level field "binary_hash" if needed,
-            # or point directly at origin.binary_hash if Qdrant supports nesting.
             qfilter = models.Filter(
                 must=[
                     models.FieldCondition(
-                        key="origin.binary_hash",  # or just "binary_hash"
+                        key="origin.binary_hash",
                         match=models.MatchAny(any=plan_hashes),
                     )
                 ]
             )
 
         resp = self.qdrant_client.query_points(
-            collection_name=self.settings.collection,
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
-            prefetch=[
-                models.Prefetch(
-                    query=models.Document(
-                        text=text, model=self.settings.embed_model_id
-                    ),
-                    using="fast-all-minilm-l6-v2",
-                ),
-                models.Prefetch(
-                    query=models.Document(
-                        text=text, model=self.settings.sparse_model_id
-                    ),
-                    using="fast-sparse-bm25",
-                ),
-            ],
+            collection_name=collection_name,
+            query=query_vector,
             query_filter=qfilter,
             limit=limit,
         )
@@ -112,6 +101,16 @@ class HybridSearcher:
 
 if __name__ == "__main__":
     import pprint
-
+    from dotenv import load_dotenv
+    
+    load_dotenv()
     searcher = HybridSearcher()
-    pprint.pprint(searcher.search("I want to call Aetna."))
+    results = searcher.search("What is my maximum out of pocket?")
+    
+    print(f"Found {len(results)} results:")
+    for i, result in enumerate(results):
+        print(f"\n--- Result {i+1} ---")
+        if 'text' in result:
+            print(f"Text: {result['text'][:200]}...")
+        if 'origin' in result and isinstance(result['origin'], dict):
+            print(f"Source: {result['origin'].get('filename', 'Unknown')}")
